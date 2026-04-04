@@ -3,17 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro Exitoso - Distribuidora MH</title>
+    <title>Autenticación - Distribuidora MH</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-slate-100 flex items-center justify-center min-h-screen p-6">
-    <div class="bg-white p-8 rounded-3xl shadow-2xl text-center max-w-sm w-full border-t-8 border-blue-900">
-        <div class="text-6xl mb-4">✅</div>
-        <h1 class="text-2xl font-bold text-blue-900 mb-2 font-sans">¡Correo Verificado!</h1>
-        <p class="text-gray-600 mb-6">Tu cuenta ha sido activada correctamente en el sistema de <strong>Distribuidora M-H y La Tiendita del Repostero</strong>.</p>
-        <p class="text-sm text-gray-400 mb-8">Ya puedes cerrar esta ventana y regresar a la aplicación para iniciar sesión.</p>
-        <div class="text-xs font-mono text-blue-300">Puerto Peñasco, Sonora</div>
-    </div>
-</body>
+    <div class="bg-white p-8 rounded-3xl shadow-2xl text-center max-w-sm w-full border-t-8 border-blue-900 transition-all duration-300">
+        
+        <div id="vista-verificacion" class="hidden">
+            <div class="text-6xl mb-4 flex justify-center">
+                <div class="bg-green-500 text-white rounded-xl p-2 shadow-lg shadow-green-500/30">
+                    <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                </div>
+            </div>
+            <h1 class="text-2xl font-bold text-blue-900 mb-2 font-sans">¡Correo Verificado!</h1>
+            <p class="text-gray-600 mb-6 text-sm">Tu cuenta ha sido activada correctamente en el sistema de <strong>Distribuidora M-H</strong> y <strong>La Tiendita del Repostero</strong>.</p>
+            <p class="text-xs text-gray-400 mb-8">Ya puedes cerrar esta ventana y regresar a la aplicación para iniciar sesión.</p>
+            <div class="text-xs font-mono text-blue-300">Puerto Peñasco, Sonora</div>
+        </div>
 
+        <div id="vista-recuperacion" class="hidden text-left">
+            <div class="flex justify-center mb-4">
+                <div class="bg-blue-900 text-white rounded-xl p-3 shadow-lg shadow-blue-900/30">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+                </div>
+            </div>
+            <h1 class="text-xl font-bold text-blue-900 mb-1 text-center">Restablecer Contraseña</h1>
+            <p class="text-sm text-gray-500 mb-6 text-center">Ingresa tu nueva contraseña para acceder al sistema.</p>
+
+            <form id="form-password">
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Nueva Contraseña</label>
+                    <input type="password" id="new-password" required minlength="6" class="w-full border border-gray-300 rounded-lg p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="Mínimo 6 caracteres">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Confirmar Contraseña</label>
+                    <input type="password" id="confirm-password" required minlength="6" class="w-full border border-gray-300 rounded-lg p-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="Repite la contraseña">
+                </div>
+                
+                <p id="mensaje-error" class="text-red-500 text-xs font-medium mb-4 hidden text-center"></p>
+                <p id="mensaje-exito" class="text-green-600 text-sm font-bold mb-4 hidden text-center">¡Contraseña actualizada! Ya puedes cerrar esta ventana y volver a la app.</p>
+
+                <button type="submit" id="btn-submit" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-lg shadow-md transition-colors">
+                    Guardar Contraseña
+                </button>
+            </form>
+        </div>
+
+    </div>
+
+    <script>
+        // 1. CONFIGURA TU SUPABASE AQUÍ
+        const SUPABASE_URL = 'TU_URL_DE_SUPABASE'; 
+        const SUPABASE_ANON_KEY = 'TU_CLAVE_ANONIMA_DE_SUPABASE';
+        
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // 2. ELEMENTOS DEL DOM
+        const vistaVerificacion = document.getElementById('vista-verificacion');
+        const vistaRecuperacion = document.getElementById('vista-recuperacion');
+        const formPassword = document.getElementById('form-password');
+        const btnSubmit = document.getElementById('btn-submit');
+        const msgError = document.getElementById('mensaje-error');
+        const msgExito = document.getElementById('mensaje-exito');
+
+        // 3. ANALIZAR LA URL
+        // Supabase pone los tokens en el hash (ej. #access_token=123&type=recovery)
+        const hash = window.location.hash.substring(1);
+        const params = new URLSearchParams(hash);
+        const type = params.get('type');
+        const accessToken = params.get('access_token');
+
+        // Definimos qué vista mostrar
+        if (type === 'recovery' || type === 'invite') {
+            vistaRecuperacion.classList.remove('hidden');
+        } else {
+            vistaVerificacion.classList.remove('hidden');
+        }
+
+        // 4. MANEJAR EL FORMULARIO DE CAMBIO DE CONTRASEÑA
+        formPassword.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const pass1 = document.getElementById('new-password').value;
+            const pass2 = document.getElementById('confirm-password').value;
+
+            // Ocultar mensajes previos
+            msgError.classList.add('hidden');
+            msgExito.classList.add('hidden');
+
+            if (pass1 !== pass2) {
+                msgError.textContent = "Las contraseñas no coinciden.";
+                msgError.classList.remove('hidden');
+                return;
+            }
+
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = "Actualizando...";
+            btnSubmit.classList.add('opacity-50');
+
+            try {
+                // Al abrir el link, Supabase guarda la sesión automáticamente.
+                // updatePassword() usará esa sesión temporal para cambiar la contraseña.
+                const { data, error } = await supabaseClient.auth.updateUser({
+                    password: pass1
+                });
+
+                if (error) throw error;
+
+                // Éxito
+                msgExito.classList.remove('hidden');
+                formPassword.reset();
+                btnSubmit.classList.add('hidden'); // Ocultamos el botón porque ya terminó
+
+            } catch (error) {
+                msgError.textContent = "Hubo un error: " + error.message;
+                msgError.classList.remove('hidden');
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = "Guardar Contraseña";
+                btnSubmit.classList.remove('opacity-50');
+            }
+        });
+    </script>
+</body>
 </html>
